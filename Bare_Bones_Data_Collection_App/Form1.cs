@@ -18,11 +18,11 @@ namespace Bare_Bones_Data_Collection_App
         Timer dataChecker; // To check for new data on COM port
 
         excel.Application excelApp; // Excel app used at runtime      
-        excel.Workbook excelBook; // Excel workbook
+        excel.Workbook excelBook; // The current Excel workbook
 
         int rowIndex = 1; // To track where we are at logging to Excel
 
-        DateTime fileTimestamp = DateTime.Now; // for setting the data file name
+        DateTime fileTimestamp = DateTime.Now; // For setting the data file name
 
         // This function is created for you by default, it sets up the Form, don't mess with it
         // ... but you can add your own setup and initializations in here if you want, I prefer the 'Load' event for those
@@ -37,10 +37,10 @@ namespace Bare_Bones_Data_Collection_App
             // Call the event to refresh the COM port list
             button_portRefresh_Click(null, null);
 
-            // Set up data checker
+            // Set up data checker using a Timer
             dataChecker = new Timer();
             dataChecker.Interval = 500; // A half second check should be sufficient, but you can adjust
-            dataChecker.Tick += DataChecker_Tick; // Event handler hookup
+            dataChecker.Tick += DataChecker_Tick; // Event handler hookup for each tick interval
             dataChecker.Start();
 
             // Set up excel application
@@ -151,12 +151,14 @@ namespace Bare_Bones_Data_Collection_App
         {
             var excelSheet = excelBook.ActiveSheet;
 
+            // If the first entry, add the headers
             if (rowIndex == 1)
             {
                 excelSheet.Cells[1, 1] = "Timestamp";
                 excelSheet.Cells[1, 2] = "Data";
             }
 
+            // Add the new data sample to the workbook
             excelSheet.Cells[++rowIndex, 1] = DateTime.Now.ToString("HH:mm:ss");
             excelSheet.Cells[rowIndex, 2] = dataVal;
         }
@@ -164,14 +166,20 @@ namespace Bare_Bones_Data_Collection_App
         // Event that is called when the Form is closing (or you exit the app)
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            dataChecker.Stop(); // Stop looking for data
+
+            // Save the log file, if currently logging
             if (checkBox_logExcel.Checked) Save_File();
  
-            excelApp.Quit();
+            excelApp.Quit(); // If you don't do this it might hang up next run   
+            
+            dataChecker.Dispose(); // Releases the Timer, just a good habit
         }
 
         // A custom function
         private void Save_File()
         {
+            // Check that a book exists and that entries have been made
             if (excelBook != null && rowIndex > 1)
             {
                 // Generate a new file name as a timestamp
@@ -202,6 +210,7 @@ namespace Bare_Bones_Data_Collection_App
             // Get all available COM ports and put in combo box
             var availablePorts = SerialPort.GetPortNames();
 
+            // Reset the combo box items
             comboBox_comPort.Items.Clear();           
             comboBox_comPort.Items.AddRange(availablePorts);
         }
