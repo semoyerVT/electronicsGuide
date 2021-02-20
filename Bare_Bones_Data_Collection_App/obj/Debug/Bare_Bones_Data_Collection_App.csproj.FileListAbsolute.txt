@@ -1,0 +1,11 @@
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\bin\Debug\Bare_Bones_Data_Collection_App.exe.config
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\bin\Debug\Bare_Bones_Data_Collection_App.exe
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\bin\Debug\Bare_Bones_Data_Collection_App.pdb
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.csprojAssemblyReference.cache
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.Form1.resources
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.Properties.Resources.resources
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.csproj.GenerateResource.cache
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.csproj.CoreCompileInputs.cache
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.exe
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.pdb
+C:\Users\MOYER\Desktop\Bare_Bones_Data_Collection_App\obj\Debug\Bare_Bones_Data_Collection_App.csproj.ResolveComReference.cache
