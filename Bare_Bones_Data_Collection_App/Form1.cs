@@ -3,19 +3,29 @@ using System.IO;
 using System.IO.Ports;
 using System.Windows.Forms;
 
-// ATTENTION
-//
 // YOU WILL NEED TO ADD THIS TO YOUR REFERENCES FOR THIS PROJECT
-// ... Right Click References --> Add Reference --> Search COM for 'Excel'
+// ... Right Click References --> Add Reference --> Search COM for 'Excel' --> Select the Excel Library and then 'Add'
 using excel = Microsoft.Office.Interop.Excel;
 
 namespace Bare_Bones_Data_Collection_App
 {
+    // The order of the functions inside this class is not important, though convention is to put the constructor at the top
     public partial class Form1 : Form
     {
+        /*
+         * Set the following to match your hardware baud rate (standard is 9600)
+         *
+         * Note: This code uses default Serial settings, and expects a newline character ('/n') delimiter between data samples
+        */
+        const int serialBaudRate = 9600;
+
+        /*
+         * The following are 'global variables', which can be accessed anywhere inside the class
+        */
+
         SerialPort arduinoPort; // The COM Port instance
 
-        Timer dataChecker; // To check for new data on COM port
+        Timer dataChecker; // To check for new data on COM port every ## milliseconds (see Form Load event)
 
         excel.Application excelApp; // Excel app used at runtime      
         excel.Workbook excelBook; // The current Excel workbook
@@ -24,8 +34,7 @@ namespace Bare_Bones_Data_Collection_App
 
         DateTime fileTimestamp = DateTime.Now; // For setting the data file name
 
-        // This function is created for you by default, it sets up the Form, don't mess with it
-        // ... but you can add your own setup and initializations in here if you want, I prefer the 'Load' event for those
+        // This constructor is created for you by default, 'InitializeComponent()' sets up the Form, don't change it
         public Form1()
         {
             InitializeComponent();
@@ -37,10 +46,10 @@ namespace Bare_Bones_Data_Collection_App
             // Call the event to refresh the COM port list
             button_portRefresh_Click(null, null);
 
-            // Set up data checker using a Timer
+            // Set up the data checker timer
             dataChecker = new Timer();
-            dataChecker.Interval = 500; // A half second check should be sufficient, but you can adjust
-            dataChecker.Tick += DataChecker_Tick; // Event handler hookup for each tick interval
+            dataChecker.Interval = 500; // A half second (500 ms) between checks should be sufficient
+            dataChecker.Tick += DataChecker_Tick; // Event handler hookup for checking
             dataChecker.Start();
 
             // Set up excel application
@@ -58,7 +67,7 @@ namespace Bare_Bones_Data_Collection_App
             }
 
             // Check for incoming data
-            if(arduinoPort.BytesToRead > 0)
+            if (arduinoPort.BytesToRead > 0)
             {
                 // Grab the data, looking for a 'newline' or 'linefeed' character as a 'delimiter'
                 // .. really you're just matching what is being sent from the Arduino (i.e. Serial.println('data');)
@@ -72,8 +81,8 @@ namespace Bare_Bones_Data_Collection_App
 
                     // Store to EXCEL!
                     if (checkBox_logExcel.Checked) Store_Data(dataVal);
-                }                
-            }      
+                }
+            }
         }
 
         // Event that is called when you click the 'OPEN' or 'CLOSE' button
@@ -82,14 +91,14 @@ namespace Bare_Bones_Data_Collection_App
             // Check for user selection
             if (comboBox_comPort.SelectedIndex == -1)
             {
-                MessageBox.Show("Choose a COM Port, restart app if needed");
+                MessageBox.Show("Choose the COM Port for your USB connected device");
                 return;
             }
 
-            // Checking for null keeps the second condition (!arduinoPort.IsOpen) from breaking
-            if (arduinoPort == null || !arduinoPort.IsOpen) 
+            // Checking for null first keeps the second condition (!arduinoPort.IsOpen) from breaking
+            if (arduinoPort == null || !arduinoPort.IsOpen)
             {
-                arduinoPort = new SerialPort(comboBox_comPort.Text, 9600);
+                arduinoPort = new SerialPort(comboBox_comPort.Text, serialBaudRate);
             }
 
             // Toggle the Open-Close state
@@ -127,9 +136,8 @@ namespace Bare_Bones_Data_Collection_App
             {
                 fileTimestamp = DateTime.Now;
                 if (excelBook == null) excelBook = excelApp.Workbooks.Add(Type.Missing);
-            }
-            // Otherwise, save the workbook
-            else Save_File();
+            }            
+            else Save_File(); // Otherwise, save the workbook
         }
 
         // Event that is called when you click the 'Change Path' button
@@ -139,7 +147,7 @@ namespace Bare_Bones_Data_Collection_App
             var folderDialog = new FolderBrowserDialog();
             var dialogResult = folderDialog.ShowDialog();
 
-            // Make sure they've selected something, show the file path
+            // Make sure they've selected something, then set the file path
             if (dialogResult == DialogResult.OK)
             {
                 textBox_folderPath.Text = folderDialog.SelectedPath;
@@ -168,12 +176,18 @@ namespace Bare_Bones_Data_Collection_App
         {
             dataChecker.Stop(); // Stop looking for data
 
-            // Save the log file, if currently logging
-            if (checkBox_logExcel.Checked) Save_File();
- 
+            // Close and dispose of the Serial Port
+            if (arduinoPort != null)
+            {
+                if (arduinoPort.IsOpen) arduinoPort.Close();
+                arduinoPort.Dispose();
+            }
+      
+            if (checkBox_logExcel.Checked) Save_File(); // Save the log file, if currently logging
+
             excelApp.Quit(); // If you don't do this it might hang up next run   
-            
-            dataChecker.Dispose(); // Releases the Timer, just a good habit
+
+            dataChecker.Dispose(); // Dispose of the timer object, just a good habit
         }
 
         // A custom function
@@ -182,9 +196,13 @@ namespace Bare_Bones_Data_Collection_App
             // Check that a book exists and that entries have been made
             if (excelBook != null && rowIndex > 1)
             {
-                // Generate a new file name as a timestamp
-                var fileName = fileTimestamp.ToString("HH-mm-ss") 
-                    + " through " + DateTime.Now.ToString("HH-mm-ss");
+                // AutoFit the log sheet columns
+                excelBook.ActiveSheet.Columns["A:B"].AutoFit();
+
+                // Generate the file name using format '[Start Timestamp] ([## total] min)'
+                var minutes = (DateTime.Now - fileTimestamp).TotalMinutes.ToString("0");
+                var fileName = fileTimestamp.ToString("MM-dd-yyyy HH-mm-ss")
+                    + " (" + minutes + " min)";
 
                 // Generate folder path, create directory if it doesn't already exist
                 var folderPath = Path.Combine(textBox_folderPath.Text, "Arduino_Data");
@@ -195,11 +213,13 @@ namespace Bare_Bones_Data_Collection_App
 
                 // Generate a full file path
                 var filePath = Path.Combine(folderPath, fileName);
-          
+
+                // Save and close the excel book
                 excelBook.SaveAs(filePath);
-                excelBook.Close();   
+                excelBook.Close();
             }
 
+            // Reset variables used for log file management
             excelBook = null;
             rowIndex = 1;
         }
@@ -211,7 +231,7 @@ namespace Bare_Bones_Data_Collection_App
             var availablePorts = SerialPort.GetPortNames();
 
             // Reset the combo box items
-            comboBox_comPort.Items.Clear();           
+            comboBox_comPort.Items.Clear();
             comboBox_comPort.Items.AddRange(availablePorts);
         }
     }
